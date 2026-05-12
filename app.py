@@ -1,22 +1,33 @@
 import streamlit as st
 import FinanceDataReader as fdr
 
-st.title("🏆 시총 상위 20등 분석기")
+st.title("📊 삼성전자 최근 150영업일 종가 (fdr)")
 
-# 데이터 가져오기 및 시총 순 정렬
-df_krx = fdr.StockListing('NASDAQ')
-df_sorted = df_krx.sort_values(by='MarCap', ascending=False)
+# 1. 삼성전자(005930) 데이터 바로 가져오기
+# 리스트 거치지 않고 코드를 직접 넣으면 에러 확률이 확 줄어듭니다.
+ticker = "005930"
+data = fdr.DataReader(ticker)
 
-# 시총 상위 20개 종목 이름만 추출
-top_20_names = df_sorted['Name'].head(2).tolist()
+if not data.empty:
+    # 2. 최근 150영업일 데이터만 슬라이싱 ('Close' 컬럼만)
+    df_150 = data[['Close']].tail(150)
+    
+    # 3. 표에서 보기 좋게 날짜 형식 변경 (index가 날짜임)
+    df_150.index = df_150.index.strftime('%Y-%m-%d')
+    
+    # 4. 최신 날짜가 위로 오도록 역순 정렬
+    df_150 = df_150.sort_index(ascending=False)
 
-# 선택 박스에 상위 20개만 넣어주기
-target_name = st.selectbox("종목을 선택하세요 (시총 상위 20위)", top_20_names)
+    # 5. 현재가 및 등락 표시
+    current_price = df_150.iloc[0]['Close']
+    prev_price = df_150.iloc[1]['Close']
+    change = current_price - prev_price
+    
+    st.metric(label="삼성전자 현재가", value=f"{current_price:,.0f}원", delta=f"{change:,.0f}원")
 
-# 선택한 이름으로 코드(Ticker) 찾기
-ticker = df_krx[df_krx['Name'] == target_name]['Code'].values[0]
-
-# 주가 데이터 불러오기
-df = fdr.DataReader(ticker, '2024')
-
-st.line_chart(df['Close'])
+    # 6. 표로 출력
+    st.write("### 최근 150영업일 데이터 내역")
+    st.dataframe(df_150, use_container_width=True) # 스크롤 가능한 깔끔한 표
+    
+else:
+    st.error("데이터를 불러오지 못했습니다. fdr 설치 상태나 종목 코드를 확인하세요.")
