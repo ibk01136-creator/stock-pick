@@ -4,7 +4,7 @@ import FinanceDataReader as fdr
 st.title("🏆 시총 상위 20등 분석기")
 
 # 데이터 가져오기 및 시총 순 정렬
-df_krx = fdr.StockListing('KRX')
+df_krx = fdr.StockListing('NASDAQ')
 df_sorted = df_krx.sort_values(by='MarCap', ascending=False)
 
 # 시총 상위 20개 종목 이름만 추출
