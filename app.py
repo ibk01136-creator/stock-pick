@@ -8,7 +8,7 @@ df_krx = fdr.StockListing('NASDAQ')
 df_sorted = df_krx.sort_values(by='MarCap', ascending=False)
 
 # 시총 상위 20개 종목 이름만 추출
-top_20_names = df_sorted['Name'].head(100).tolist()
+top_20_names = df_sorted['Name'].head(2).tolist()
 
 # 선택 박스에 상위 20개만 넣어주기
 target_name = st.selectbox("종목을 선택하세요 (시총 상위 20위)", top_20_names)
