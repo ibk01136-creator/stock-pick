@@ -1,33 +1,38 @@
 import streamlit as st
 import FinanceDataReader as fdr
+from datetime import datetime, timedelta
 
-st.title("📊 삼성전자 최근 150영업일 종가 (fdr)")
+st.title("⚡ 최적화된 삼성전자 분석 (최근 100일)")
 
-# 1. 삼성전자(005930) 데이터 바로 가져오기
-# 리스트 거치지 않고 코드를 직접 넣으면 에러 확률이 확 줄어듭니다.
 ticker = "005930"
-data = fdr.DataReader(ticker)
 
-if not data.empty:
-    # 2. 최근 150영업일 데이터만 슬라이싱 ('Close' 컬럼만)
-    df_150 = data[['Close']].tail(150)
-    
-    # 3. 표에서 보기 좋게 날짜 형식 변경 (index가 날짜임)
-    df_150.index = df_150.index.strftime('%Y-%m-%d')
-    
-    # 4. 최신 날짜가 위로 오도록 역순 정렬
-    df_150 = df_150.sort_index(ascending=False)
+# 1. 200일 전 날짜 계산 (필요한 120영업일을 확보하기에 가장 적절한 기간)
+# 오늘 날짜로부터 딱 200일 전까지만 서버에 요청합니다.
+start_date = (datetime.now() - timedelta(days=200)).strftime('%Y-%m-%d')
 
-    # 5. 현재가 및 등락 표시
-    current_price = df_150.iloc[0]['Close']
-    prev_price = df_150.iloc[1]['Close']
-    change = current_price - prev_price
-    
-    st.metric(label="삼성전자 현재가", value=f"{current_price:,.0f}원", delta=f"{change:,.0f}원")
+# 2. 지정된 날짜부터 데이터 가져오기
+df = fdr.DataReader(ticker, start_date)
 
-    # 6. 표로 출력
-    st.write("### 최근 150영업일 데이터 내역")
-    st.dataframe(df_150, use_container_width=True) # 스크롤 가능한 깔끔한 표
+if not df.empty:
+    # 3. 가져온 데이터에서 지표 계산 (20일 이평, 표준편차)
+    # df 안에는 약 140~150일치 데이터가 들어있을 것이므로 20이평 계산에 문제없음
+    df['20일이평'] = df['Close'].rolling(window=20).mean()
+    df['표준편차'] = df['Close'].rolling(window=20).std()
+
+    # 4. 최종적으로 표에 보여줄 최근 100일치만 추출
+    df_100 = df[['Close', '20일이평', '표준편차']].tail(100).copy()
+    
+    # 5. 날짜 형식 및 역순 정렬
+    df_100.index = df_100.index.strftime('%Y-%m-%d')
+    df_display = df_100.sort_index(ascending=False)
+
+    # 6. 숫자 포맷팅 (콤마 및 소수점)
+    df_display['Close'] = df_display['Close'].apply(lambda x: f"{x:,.0f}")
+    df_display['20일이평'] = df_display['20일이평'].apply(lambda x: f"{x:,.2f}")
+    df_display['표준편차'] = df_display['표준편차'].apply(lambda x: f"{x:,.2f}")
+
+    # 7. 스크롤 없는 표 출력
+    st.table(df_display)
     
 else:
-    st.error("데이터를 불러오지 못했습니다. fdr 설치 상태나 종목 코드를 확인하세요.")
+    st.error("데이터를 가져오는 데 실패했습니다.")
