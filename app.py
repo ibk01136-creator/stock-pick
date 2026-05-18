@@ -1,5 +1,5 @@
 import streamlit as st
-import finance_datareader as fdr
+import finance-datareader as fdr
 from datetime import datetime, timedelta
 
 # 모바일 친화적인 레이아웃 설정
